@@ -8,6 +8,9 @@ The session is injected as a dependency via get_session().
 from sqlmodel import Session, SQLModel, create_engine
 
 from app.config import get_settings
+from app.models.hero import Hero
+from app.models.user import User
+from app.models.mission import Mission
 
 settings = get_settings()
 
