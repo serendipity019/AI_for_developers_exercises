@@ -24,8 +24,8 @@ class MissionUpdate(BaseModel):
     completed: Optional[bool] = Field(default= False)
     hero_id: Optional[int] = Field(default=None) 
 
-class MissionResponse(BaseModel):
-    """Used for GET /missions and GET /missions/{mission_id}"""
+class MissionOut(BaseModel):
+    """Schema for missions responses. Used for GET /missions and GET /missions/{mission_id}"""
     id: int
     title: str 
     difficulty: int
