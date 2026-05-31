@@ -36,8 +36,8 @@ class AdminHeroUpdate(BaseModel):
     """Schema for partial hero updates by the admin. All fields optional. (PATCH /heroes/{hero_id})"""
     name: Optional[str] = Field(default=None, min_length=3, max_length=30)
     power: Optional[str] = Field(default=None, min_length=3, max_length=30)
-    level: Optional[str] = Field(default=None, ge=1, le=100)
-    active: bool = Field(default=True) 
+    level: Optional[int] = Field(default=None, ge=1, le=100)
+    active: Optional[bool] = Field(default=True) 
 
 class HeroOut(BaseModel):
     """Schema for hero responses. Used for GET /heroes and GET /heroes/{hero_id}"""

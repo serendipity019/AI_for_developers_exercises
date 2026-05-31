@@ -21,7 +21,7 @@ class MissionUpdate(BaseModel):
     """Used for PATCH /missions/{mission_id} - all fields optional."""
     title: Optional[str] = Field(default=None, min_length=5)
     difficulty: Optional[int] = Field(default=None ,ge=1, le=10)
-    completed: Optional[bool] = Field(default= False)
+    completed: Optional[bool] = Field(default= None)
     hero_id: Optional[int] = Field(default=None) 
 
 class MissionOut(BaseModel):
