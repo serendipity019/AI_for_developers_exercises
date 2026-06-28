@@ -33,7 +33,7 @@ def create_mission(mission_data: MissionCreate, session: SessionDep, user: Curre
 
     mission_dict = mission_data.model_dump()
 
-    hero = session.get(Hero, mission_dict.hero_id)
+    hero = session.get(Hero, mission_dict["hero_id"])
     if not hero:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -62,8 +62,8 @@ def update_mission(mission_id: int, update_data: MissionUpdate, session: Session
     
     mission_dict = update_data.model_dump(exclude_unset=True)
 
-    if "hero_id" in mission_dict and mission_dict.hero_id is not None:
-        hero = session.get(Hero, mission_dict.hero_id)
+    if "hero_id" in mission_dict and mission_dict["hero_id"] is not None:
+        hero = session.get(Hero, mission_dict["hero_id"])
         if not hero:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
