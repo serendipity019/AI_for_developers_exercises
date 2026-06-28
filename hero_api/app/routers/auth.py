@@ -20,7 +20,7 @@ from app.schemas.user import UserCreate, UserOut
 from app.security import create_access_token, verify_password, hash_password
 
 
-router = APIRouter(prefix="auth", tags=["Authentication"])
+router = APIRouter(prefix="/auth", tags=["Authentication"])
 
 @router.post("/login", response_model=Token)
 def login(
