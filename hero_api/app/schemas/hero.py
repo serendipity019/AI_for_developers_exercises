@@ -45,6 +45,7 @@ class HeroOut(BaseModel):
     name: str
     power: str
     level: int | None = None
+    active: bool = True
 
     class Config:
         from_attributes = True
