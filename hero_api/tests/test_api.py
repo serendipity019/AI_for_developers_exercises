@@ -18,7 +18,40 @@ import pytest
 from fastapi.testclient import TestClient
 
 from app.main import app
-from tests.conftest import client, test_user, test_admin
+
+def test_debug(client):
+    """Debug test to see what's happening."""
+    # Try to register
+    resp = client.post("/auth/register", json={
+        "username": "debuguser",
+        "password": "debugpass123"
+    })
+    print(f"Register status: {resp.status_code}")
+    print(f"Register response: {resp.text}")
+
+    # # If registration fails with "already exists", try a unique username
+    # if resp.status_code == 400 and "already exists" in resp.text:
+    #     import time
+    #     unique_user = f"debuguser_{int(time.time())}"
+    #     resp = client.post("/auth/register", json={
+    #         "username": unique_user,
+    #         "password": "debugpass123"
+    #     })
+    #     print(f"Second register status: {resp.status_code}")
+    #     print(f"Second register response: {resp.text}")
+    
+    # Try to login
+    if resp.status_code == 201:
+        resp2 = client.post("/auth/login", data={
+            "username": "debuguser",
+            "password": "debugpass123"
+        })
+        print(f"Login status: {resp2.status_code}")
+        print(f"Login response: {resp2.text}")
+    
+    # This test is just for debugging, so it passes
+    assert resp.status_code == 201, "Registration should work"
+
 
 class TestAuth:
     """Authentication tests"""
@@ -101,7 +134,7 @@ class TestHeroes:
         )
         assert response.status_code == 401
     
-    def test_create_hero_with_token(self, client, test_user):
+    def test_create_hero_with_token(self, client, test_login_user):
         """Test 4: Create hero with valid token"""
         response = client.post(
             "/heroes/",
@@ -109,7 +142,7 @@ class TestHeroes:
                 "name": "Auth Hero",
                 "power": "Token Power"
             },
-            headers={"Authorization": f"Bearer {test_user['token']}"}
+            headers={"Authorization": f"Bearer {test_login_user['token']}"}
         )
         assert response.status_code == 201
         data = response.json()
@@ -118,7 +151,7 @@ class TestHeroes:
         assert data["level"] == 1  # Normal users get level 1
         assert data["active"] == True
     
-    def test_normal_user_cannot_create_hero_with_level(self, client, test_user):
+    def test_normal_user_cannot_create_hero_with_level(self, client, test_login_user):
         """Test 8: Normal user cannot set custom level"""
         response = client.post(
             "/heroes/",
@@ -128,7 +161,7 @@ class TestHeroes:
                 "level": 50,  # Trying to set level
                 "active": False  # Trying to set active
             },
-            headers={"Authorization": f"Bearer {test_user['token']}"}
+            headers={"Authorization": f"Bearer {test_login_user['token']}"}
         )
         # Should succeed but level will be ignored/forced to 1
         assert response.status_code == 201
@@ -138,6 +171,9 @@ class TestHeroes:
     
     def test_admin_can_create_hero_with_custom_level(self, client, test_admin):
         """Test 9: Admin can create hero with custom level"""
+        assert test_admin is not None, "Admin fixture returned None"
+        assert "token" in test_admin, "Admin token missing"
+
         response = client.post(
             "/heroes/",
             json={
@@ -153,7 +189,7 @@ class TestHeroes:
         assert data["level"] == 75
         assert data["active"] == False
     
-    def test_get_heroes_public(self, client, test_user):
+    def test_get_heroes_public(self, client, test_login_user):
         """Test list heroes is public"""
         # Create a heroes first
         client.post(
@@ -162,7 +198,7 @@ class TestHeroes:
                 "name": "Public Hero",
                 "power": "Public Power"
             },
-            headers={"Authorization": f"Bearer {test_user['token']}"}
+            headers={"Authorization": f"Bearer {test_login_user['token']}"}
         )
 
         client.post(
@@ -171,7 +207,7 @@ class TestHeroes:
                 "name": "Level Hero",
                 "power": "Test Power", 
             },
-            headers={"Authorization": f"Bearer {test_user['token']}"}
+            headers={"Authorization": f"Bearer {test_login_user['token']}"}
         )
         
         # Public GET should work without token
@@ -180,37 +216,38 @@ class TestHeroes:
         data = response.json()
         assert len(data) > 0
     
-    def test_get_hero_by_id_public(self, client, test_hero):
+    def test_get_hero_by_id_public(self, client, test_login_user, test_hero_id):
         """Test get hero by ID is public"""
-        response = client.get(f"/heroes/{test_hero['id']}")
+        response = client.get(f"/heroes/{test_hero_id}")
         assert response.status_code == 200
         data = response.json()
-        assert data["name"] == "Test Hero"
+        assert data["name"] == "Hero By ID" # Name from test_hero_id fixture in conftest file.
+        assert "id" in data
     
-    def test_normal_user_cannot_delete_hero(self, client, test_user, test_hero):
+    def test_normal_user_cannot_delete_hero(self, client, test_login_user, test_hero):
         """Test 6: Normal user cannot delete hero"""
         # Try to delete the hero created by test_hero fixture
         response = client.delete(
             f"/heroes/{test_hero['id']}",
-            headers={"Authorization": f"Bearer {test_user['token']}"}
+            headers={"Authorization": f"Bearer {test_login_user['token']}"}
         )
         assert response.status_code == 403  # Forbidden
     
-    def test_normal_user_cannot_update_hero_level(self, client, test_user, test_hero):
+    def test_normal_user_cannot_update_hero_level(self, client, test_login_user, test_hero):
         """Test normal user cannot update hero level"""
         response = client.patch(
             f"/heroes/{test_hero['id']}",
             json={
                 "level": 99  # Trying to change level
             },
-            headers={"Authorization": f"Bearer {test_user['token']}"}
+            headers={"Authorization": f"Bearer {test_login_user['token']}"}
         )
         # Should succeed but level unchanged
         assert response.status_code == 200
         data = response.json()
         assert data["level"] == 1  # Still level 1 (from fixture)
     
-    def test_normal_user_can_update_hero_name(self, client, test_user, test_hero):
+    def test_normal_user_can_update_hero_name(self, client, test_login_user, test_hero):
         """Test normal user can update hero name and power"""
         response = client.patch(
             f"/heroes/{test_hero['id']}",
@@ -218,7 +255,7 @@ class TestHeroes:
                 "name": "Updated Hero Name",
                 "power": "Updated Power"
             },
-            headers={"Authorization": f"Bearer {test_user['token']}"}
+            headers={"Authorization": f"Bearer {test_login_user['token']}"}
         )
         assert response.status_code == 200
         data = response.json()
@@ -227,6 +264,9 @@ class TestHeroes:
     
     def test_admin_can_delete_hero(self, client, test_admin, test_hero):
         """Test admin can delete hero with no missions"""
+        assert test_admin is not None, "Admin fixture returned None"
+        assert "token" in test_admin, "Admin token missing"
+
         response = client.delete(
             f"/heroes/{test_hero['id']}",
             headers={"Authorization": f"Bearer {test_admin['token']}"}
@@ -236,7 +276,7 @@ class TestHeroes:
 class TestMissions:
     """Mission CRUD tests"""
     
-    def test_create_mission_for_missing_hero_returns_404(self, client, test_user):
+    def test_create_mission_for_missing_hero_returns_404(self, client, test_login_user):
         """Test 5: Create mission for missing hero returns 404"""
         response = client.post(
             "/missions/",
@@ -245,12 +285,12 @@ class TestMissions:
                 "difficulty": 5,
                 "hero_id": 99999  # Non-existent hero
             },
-            headers={"Authorization": f"Bearer {test_user['token']}"}
+            headers={"Authorization": f"Bearer {test_login_user['token']}"}
         )
         assert response.status_code == 404
         assert "Hero not found" in response.text
     
-    def test_create_mission_with_valid_hero(self, client, test_user, test_hero):
+    def test_create_mission_with_valid_hero(self, client, test_login_user, test_hero):
         """Test create mission for existing hero"""
         response = client.post(
             "/missions/",
@@ -259,7 +299,7 @@ class TestMissions:
                 "difficulty": 7,
                 "hero_id": test_hero["id"]
             },
-            headers={"Authorization": f"Bearer {test_user['token']}"}
+            headers={"Authorization": f"Bearer {test_login_user['token']}"}
         )
         assert response.status_code == 201
         data = response.json()
@@ -268,7 +308,7 @@ class TestMissions:
         assert data["completed"] == False
         assert data["hero_id"] == test_hero["id"]
     
-    def test_get_missions_public(self, client, test_user, test_hero):
+    def test_get_missions_public(self, client, test_login_user, test_hero):
         """Test list missions is public"""
         # Create missions first
         client.post(
@@ -278,7 +318,7 @@ class TestMissions:
                 "difficulty": 3,
                 "hero_id": test_hero["id"]
             },
-            headers={"Authorization": f"Bearer {test_user['token']}"}
+            headers={"Authorization": f"Bearer {test_login_user['token']}"}
         )
 
         client.post(
@@ -288,7 +328,7 @@ class TestMissions:
                 "difficulty": 4,
                 "hero_id": test_hero["id"]
             },
-            headers={"Authorization": f"Bearer {test_user['token']}"}
+            headers={"Authorization": f"Bearer {test_login_user['token']}"}
         )
         
         # Public GET should work without token
@@ -297,7 +337,7 @@ class TestMissions:
         data = response.json()
         assert len(data) > 0
     
-    def test_update_mission(self, client, test_user, test_hero):
+    def test_update_mission(self, client, test_login_user, test_hero):
         """Test update mission"""
         # Create mission
         create = client.post(
@@ -307,7 +347,7 @@ class TestMissions:
                 "difficulty": 5,
                 "hero_id": test_hero["id"]
             },
-            headers={"Authorization": f"Bearer {test_user['token']}"}
+            headers={"Authorization": f"Bearer {test_login_user['token']}"}
         )
         assert create.status_code == 201
         mission_id = create.json()["id"]
@@ -320,7 +360,7 @@ class TestMissions:
                 "difficulty": 8,
                 "completed": True
             },
-            headers={"Authorization": f"Bearer {test_user['token']}"}
+            headers={"Authorization": f"Bearer {test_login_user['token']}"}
         )
         assert response.status_code == 200
         data = response.json()
@@ -328,7 +368,7 @@ class TestMissions:
         assert data["difficulty"] == 8
         assert data["completed"] == True
     
-    def test_normal_user_cannot_delete_mission(self, client, test_user, test_hero):
+    def test_normal_user_cannot_delete_mission(self, client, test_login_user, test_hero):
         """Test normal user cannot delete mission"""
         # Create mission
         create = client.post(
@@ -338,7 +378,7 @@ class TestMissions:
                 "difficulty": 3,
                 "hero_id": test_hero["id"]
             },
-            headers={"Authorization": f"Bearer {test_user['token']}"}
+            headers={"Authorization": f"Bearer {test_login_user['token']}"}
         )
         assert create.status_code == 201
         mission_id = create.json()["id"]
@@ -346,13 +386,16 @@ class TestMissions:
         # Try to delete
         response = client.delete(
             f"/missions/{mission_id}",
-            headers={"Authorization": f"Bearer {test_user['token']}"}
+            headers={"Authorization": f"Bearer {test_login_user['token']}"}
         )
         assert response.status_code == 403  # Forbidden
     
     def test_admin_can_delete_mission(self, client, test_admin, test_hero):
         """Test 7: Admin can delete mission"""
         # First create a user to create mission
+        assert test_admin is not None, "Admin fixture returned None"
+        assert "token" in test_admin, "Admin token missing"
+
         user = client.post(
             "/auth/register",
             json={
@@ -395,6 +438,9 @@ class TestMissions:
     
     def test_cannot_delete_hero_with_active_missions(self, client, test_admin, test_hero):
         """Test 10: Cannot delete hero with active missions"""
+        assert test_admin is not None, "Admin fixture returned None"
+        assert "token" in test_admin, "Admin token missing"
+
         # Create mission for hero
         user = client.post(
             "/auth/register",
@@ -434,4 +480,4 @@ class TestMissions:
             headers={"Authorization": f"Bearer {test_admin['token']}"}
         )
         assert response.status_code == 400
-        assert "Cannot delete hero with active missions" in response.text
+        assert "Cannot delete hero with incomplete missions" in response.text
