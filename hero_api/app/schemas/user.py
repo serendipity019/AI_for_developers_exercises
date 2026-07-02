@@ -13,6 +13,12 @@ class UserCreate(BaseModel):
     username: str = Field(min_length=3, max_length=30)
     password: str = Field(min_length=8)
 
+class AdminCreate(BaseModel):
+    """Schema for admin registration."""
+    username: str = Field(min_length=3, max_length=30)
+    password: str = Field(min_length=8)
+    is_admin: bool = True
+
 class UserLogin(BaseModel):
     """Used for POST /auth/login"""
     username: str 
