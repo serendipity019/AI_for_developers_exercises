@@ -39,6 +39,9 @@ class Settings(BaseSettings):
         "http://localhost:5173",
     ]
 
+    FIRST_SUPERUSER: str = os.getenv("FIRST_SUPERUSER")
+    FIRST_SUPERUSER_PASSWORD: str = os.getenv("FIRST_SUPERUSER_PASSWORD")
+
 
 @lru_cache
 def get_settings() -> Settings:
