@@ -49,7 +49,7 @@ def client_fixture(session):
     app.dependency_overrides[get_session] = get_session_override
 
     # Prevent the app's lifespan from creating/touching the production DB
-    with patch("app.main.create_db_and_tables"):
+    with patch("app.main.init_db"):
         with TestClient(app) as test_client:
             yield test_client
 
