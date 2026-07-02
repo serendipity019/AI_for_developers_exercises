@@ -21,7 +21,7 @@ from starlette.requests import Request
 from starlette.responses import Response
 
 from app.config import get_settings
-from app.db import create_db_and_tables
+from app.db import get_session, init_db
 from app.routers import auth_router, heroes_router, missions_router
 
 settings = get_settings()
@@ -30,8 +30,10 @@ settings = get_settings()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Startup: create DB tables. Shutdown: cleanup."""
-    create_db_and_tables()
+    """Startup: create DB tables and superuser. Shutdown: cleanup."""
+    # Initialize database with tables and superuser
+    with next(get_session()) as session:
+        init_db(session)
     print("Database ready [OK]")
     yield
     print("Shutting down...")
