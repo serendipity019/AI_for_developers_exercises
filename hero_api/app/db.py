@@ -8,7 +8,7 @@ The session is injected as a dependency via get_session().
 from sqlmodel import Session, SQLModel, create_engine, select
 from sqlalchemy import text
 
-from app import crud
+from app.crud import create_admin_user
 from app.config import get_settings
 from app.models.hero import Hero
 from app.models.user import User
@@ -67,9 +67,10 @@ def _create_superuser(session:Session) -> None:
         user_in = AdminCreate(
             username=settings.FIRST_SUPERUSER,
             password=settings.FIRST_SUPERUSER_PASSWORD,
+            is_admin=True,
         )
-        user = crud.create_user(session=session, user_create=user_in)
-        print("✅ Superuser created successfully!")
+        user = create_admin_user(session=session, user_create=user_in)
+        print(f"✅ Superuser created successfully! (is_admin={user.is_admin})")
     else:
         print(f"✅ Superuser already exists: {settings.FIRST_SUPERUSER}")
     
