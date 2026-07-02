@@ -25,7 +25,7 @@ def create_admin_user(*, session: Session, user_create: AdminCreate) -> User:
     db_obj = User(
         username= user_create.username,
         hashed_password= hash_password(user_create.password),
-        is_admin= True,
+        is_admin=True,
     )
     session.add(db_obj)
     session.commit()
